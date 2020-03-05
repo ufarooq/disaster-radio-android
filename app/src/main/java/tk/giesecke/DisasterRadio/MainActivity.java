@@ -24,6 +24,8 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 
+import org.osmdroid.library.BuildConfig;
+
 import java.util.ArrayList;
 import java.util.Objects;
 

@@ -22,6 +22,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.preference.PreferenceManager;
@@ -46,6 +48,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.osmdroid.config.Configuration;
+import org.osmdroid.library.BuildConfig;
 import org.osmdroid.tileprovider.modules.ArchiveFileFactory;
 import org.osmdroid.tileprovider.modules.IArchiveFile;
 import org.osmdroid.tileprovider.modules.OfflineTileProvider;
@@ -70,6 +73,7 @@ import tk.giesecke.DisasterRadio.msg.Message;
 import tk.giesecke.DisasterRadio.msg.MessageAdapter;
 import tk.giesecke.DisasterRadio.nodes.Nodes;
 import tk.giesecke.DisasterRadio.nodes.NodesAdapter;
+import tk.giesecke.DisasterRadio.viewModel.TerminalFragmentViewModel;
 
 import static tk.giesecke.DisasterRadio.MainActivity.LOCATION_UPDATE;
 import static tk.giesecke.DisasterRadio.MainActivity.appContext;
@@ -87,6 +91,7 @@ import static tk.giesecke.DisasterRadio.MainActivity.userName;
 public class TerminalFragment extends Fragment implements ServiceConnection, SerialListener {
 
 	private static final String TAG = "TerminalFragment";
+	private TerminalFragmentViewModel viewModel;
 
 	private enum Connected {False, Pending, True}
 
@@ -238,7 +243,8 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 	 * UI
 	 */
 	private void setInfo() {
-		@SuppressLint("DefaultLocale") String deviceInfo = "Device: " + userName + " Loc: lat " + String.format("%.3f long ", latDouble) + String.format("%.3f", longDouble);
+		@SuppressLint("DefaultLocale")
+		String deviceInfo = "Device: " + userName + " Loc: lat " + String.format("%.3f long ", latDouble) + String.format("%.3f", longDouble);
 		nodeInfo.setText(deviceInfo);
 	}
 
@@ -247,7 +253,8 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		// For the map
 		Configuration.getInstance().load(thisContext, PreferenceManager.getDefaultSharedPreferences(thisContext));
-
+// Get the ViewModel.
+		viewModel = new ViewModelProvider(this).get(TerminalFragmentViewModel.class);
 		fragmentView = inflater.inflate(R.layout.fragment_terminal, container, false);
 
 		sendText = fragmentView.findViewById(R.id.send_text);
@@ -270,6 +277,9 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 		mapLayout = fragmentView.findViewById(R.id.map_view);
 		chatLayout = fragmentView.findViewById(R.id.chat_view);
 
+		viewModel.getChatLayoutVisibility().observe(getActivity(), integer -> chatLayout.setVisibility(integer));
+
+		viewModel.getMapLayoutVisibility().observe(getActivity(), integer -> mapLayout.setVisibility(integer));
 		View sendBtn = fragmentView.findViewById(R.id.send_btn);
 		sendBtn.setOnClickListener(v -> {
 			send(sendText.getText().toString(), "c");
@@ -288,13 +298,17 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 		View showMapBtn = fragmentView.findViewById(R.id.show_map_btn);
 		showMapBtn.setOnClickListener(v -> {
 			if ((!meEntry.isCoordValid()) || (mapView.getOverlays().isEmpty())) {
-				chatLayout.setVisibility(View.GONE);
-				mapLayout.setVisibility(View.VISIBLE);
+				//chatLayout.setVisibility(View.GONE);
+				viewModel.getChatLayoutVisibility().setValue(View.GONE);
+				//mapLayout.setVisibility(View.VISIBLE);
+				viewModel.getMapLayoutVisibility().setValue(View.VISIBLE);
 				mapView.getController().setCenter(new GeoPoint(14.4726767, 121.0011358));
 				mapView.getController().setZoom(defaultZoom);
 			} else {
-				chatLayout.setVisibility(View.GONE);
-				mapLayout.setVisibility(View.VISIBLE);
+				//chatLayout.setVisibility(View.GONE);
+				viewModel.getChatLayoutVisibility().setValue(View.GONE);
+				//mapLayout.setVisibility(View.VISIBLE);
+				viewModel.getMapLayoutVisibility().setValue(View.VISIBLE);
 				Handler handler = new Handler();
 				final Runnable stopAlarm = () -> {
 					BoundingBox newBox = createBoundingBox();
@@ -312,8 +326,10 @@ public class TerminalFragment extends Fragment implements ServiceConnection, Ser
 		});
 		View showChatBtn = fragmentView.findViewById(R.id.show_chat_btn);
 		showChatBtn.setOnClickListener(v -> {
-			chatLayout.setVisibility(View.VISIBLE);
-			mapLayout.setVisibility(View.INVISIBLE);
+			//chatLayout.setVisibility(View.VISIBLE);
+			viewModel.getChatLayoutVisibility().setValue(View.VISIBLE);
+			//mapLayout.setVisibility(View.INVISIBLE);
+			viewModel.getMapLayoutVisibility().setValue(View.INVISIBLE);
 		});
 
 		return fragmentView;
